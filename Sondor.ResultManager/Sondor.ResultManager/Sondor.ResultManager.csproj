@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Title>Sondor.ResultManager</Title>
+    <Authors>Sondor Technology</Authors>
+    <Company>Sondor Technology</Company>
+    <Product>Sondor.ResultManager</Product>
+    <Description>The Sondor Result manager package, provides an extendible manager to extend and customize the result pattern.</Description>
+    <Copyright>LICENSE</Copyright>
+    <PackageProjectUrl>https://github.com/sondor-dev/sondor-result-manager-package</PackageProjectUrl>
+    <PackageIcon>sondor-technology-logo.jpg</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/sondor-dev/sondor-result-manager-package</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>Sondor;Result;Manager;</PackageTags>
+    <PackageReleaseNotes>The initial release.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>$(AssemblyName).Tests</_Parameter1>
+    </AssemblyAttribute>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
+    <PackageReference Include="Sondor.Errors" Version="1.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="sondor-technology-logo.jpg">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="sondor-technology-logo.jpg">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
