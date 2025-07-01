@@ -16,4 +16,4 @@ dotnet add package Sondor.ResultManager
 ```
 
 ## Getting Started
-Follow the package instructions [here](/Sondor.ResultManager/README.md)
+Follow the package instructions [here](/Sondor.ResultManager/Sondor.ResultManager/README.md)
