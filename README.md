@@ -1,7 +1,7 @@
 # Sondor Result Manager
-[![NuGet](https://img.shields.io/nuget/v/Sondor.ResultManager.svg)](https://www.nuget.org/packages/Sondor.ResultManager)
-![GitHub](https://img.shields.io/github/license/SondorDev/Sondor.ResultManager.svg)
-![NuGet Downloads](https://img.shields.io/nuget/dt/Sondor.ResultManager)
+![Build Status](https://dev.azure.com/sondortechnology/Sondor%20Infrastructure/_apis/build/status%2Fsondor-dev.sondor-result-manager-package?repoName=sondor-dev%2Fsondor-result-manager-package&branchName=master)
+![License](https://img.shields.io/github/license/sondor-dev/sondor-result-manager-package)
+![NuGet Downloads](https://img.shields.io/nuget/dt/Sondor.resultManager)
 
 The Sondor Result manager package, provides an extendible manager to extend and customize the result pattern.
 

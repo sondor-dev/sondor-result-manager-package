@@ -7,7 +7,7 @@ trigger:
       - Sondor.ResultManager/**
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: windows-latest
 
 variables:
 - name: major
