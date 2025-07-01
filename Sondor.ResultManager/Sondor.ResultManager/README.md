@@ -6,3 +6,5 @@ The Sondor Result manager package, provides an extendible manager to extend and 
 ```csharp
     services.AddSondorResultManager();
 ```
+  2. Use the `ISondorResultManager` interface to be injected.
+  3. Add `Sondor.ResultManager.Extensions` namespace reference, to gain access to the extension options.
