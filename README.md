@@ -1,6 +1,7 @@
 # Sondor Result Manager
 [![NuGet](https://img.shields.io/nuget/v/Sondor.ResultManager.svg)](https://www.nuget.org/packages/Sondor.ResultManager)
 ![GitHub](https://img.shields.io/github/license/SondorDev/Sondor.ResultManager.svg)
+![NuGet Downloads](https://img.shields.io/nuget/dt/Sondor.ResultManager)
 
 The Sondor Result manager package, provides an extendible manager to extend and customize the result pattern.
 
