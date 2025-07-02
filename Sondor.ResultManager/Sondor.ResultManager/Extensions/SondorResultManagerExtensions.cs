@@ -42,11 +42,6 @@ public static class SondorResultManagerExtensions
         IEnumerable<ValidationFailure> failures,
         CancellationToken cancellationToken = default)
     {
-        if (failures == null)
-        {
-            throw new ArgumentNullException($"{nameof(failures)} cannot be null.", nameof(failures));
-        }
-
         var failuresList = failures.ToList();
 
         var errorFormat = await resultManager.GetErrorFormat(SondorErrorCodes.BadRequest, cancellationToken);
