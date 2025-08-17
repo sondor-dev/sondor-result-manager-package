@@ -26,7 +26,7 @@
     </AssemblyAttribute>
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.8" />
-    <PackageReference Include="Sondor.Errors" Version="1.1.5" />
+    <PackageReference Include="Sondor.Errors" Version="1.1.6" />
   </ItemGroup>
 
   <ItemGroup>
