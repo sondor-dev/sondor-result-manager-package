@@ -1,5 +1,6 @@
 # Sondor Result Manager
 The Sondor Result manager package, provides an extendible manager to extend and customize the result pattern.
+The result manager has direct support for localization, logging, exception handling and problem details.
 
 ## Getting Started
   1. Add the `SondorResultManager` to the dependency container.
