@@ -1,4 +1,6 @@
-﻿using Sondor.Errors;
+﻿using Microsoft.AspNetCore.Http;
+using Sondor.Errors;
+using Sondor.Translations;
 
 namespace Sondor.ResultManager;
 
@@ -8,18 +10,12 @@ namespace Sondor.ResultManager;
 public interface ISondorResultManager
 {
     /// <summary>
-    /// Gets the error type.
+    /// The HTTP context accessor.
     /// </summary>
-    /// <param name="errorCode">The error code.</param>
-    /// <returns>Returns the error type.</returns>
-    string GetErrorType(int errorCode);
+    IHttpContextAccessor HttpContextAccessor { get; }
 
     /// <summary>
-    /// Gets the error format.
+    /// The translation manager.
     /// </summary>
-    /// <param name="errorCode">The error code.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Returns the error format.</returns>
-    Task<string> GetErrorFormat(int errorCode,
-        CancellationToken cancellationToken = default);
+    ISondorTranslationManager TranslationManager { get; }
 }

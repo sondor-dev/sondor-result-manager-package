@@ -1,5 +1,8 @@
-﻿using FluentValidation.Results;
+﻿using System.Text.Json;
+using FluentValidation.Results;
 using Sondor.Errors;
+using Sondor.ProblemResults.Constants;
+using Sondor.ProblemResults.Extensions;
 
 namespace Sondor.ResultManager.Extensions;
 
@@ -36,38 +39,34 @@ public static class SondorResultManagerExtensions
     /// </summary>
     /// <param name="resultManager">The result manager.</param>
     /// <param name="failures">The validation failures.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>Returns the bad request result.</returns>
-    public static async Task<SondorResult> BadRequest(this ISondorResultManager resultManager,
-        IEnumerable<ValidationFailure> failures,
-        CancellationToken cancellationToken = default)
+    public static SondorResult BadRequest(this ISondorResultManager resultManager,
+        IEnumerable<ValidationFailure> failures)
     {
         var failuresList = failures.ToList();
+        var errorMessage =
+            resultManager.TranslationManager.ProblemBadRequest(
+                resultManager.HttpContextAccessor.HttpContext.Request.Method,
+                resultManager.HttpContextAccessor.HttpContext.Request.Path);
 
-        var errorFormat = await resultManager.GetErrorFormat(SondorErrorCodes.BadRequest, cancellationToken);
-        var description = string.Format(errorFormat, failuresList.Count);
-        var error = new SondorError(SondorErrorCodes.BadRequest,
-            SondorErrorTypes.BadRequestType,
-            description);
-
-        error.Context.Add("Errors", failuresList);
-
-        return new SondorResult(error);
+        return new SondorResult(new SondorError(SondorErrorCodes.BadRequest,
+            ProblemResultConstants.FindProblemTypeByErrorCode(SondorErrorCodes.BadRequest),
+            errorMessage,
+            new Dictionary<string, object?>
+            {
+                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
+                { ProblemResultConstants.ErrorCode, SondorErrorCodes.BadRequest },
+                { ProblemResultConstants.ErrorMessage, errorMessage },
+                { ProblemResultConstants.Errors, failuresList}
+            }));
     }
 
-    /// <summary>
-    /// Resource not found result.
-    /// </summary>
+    /// <inheritdoc cref="BadRequest"/>
     /// <typeparam name="TResult">The result type.</typeparam>
-    /// <param name="resultManager">The result manager.</param>
-    /// <param name="failures">The validation failures.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Returns the resource not found result.</returns>
-    public static async Task<SondorResult<TResult>> BadRequest<TResult>(this ISondorResultManager resultManager,
-        IEnumerable<ValidationFailure> failures,
-        CancellationToken cancellationToken = default)
+    public static SondorResult<TResult> BadRequest<TResult>(this ISondorResultManager resultManager,
+        IEnumerable<ValidationFailure> failures)
     {
-        var result = await BadRequest(resultManager, failures, cancellationToken);
+        var result = BadRequest(resultManager, failures);
 
         return new SondorResult<TResult>(result.Error);
     }
@@ -79,13 +78,11 @@ public static class SondorResultManagerExtensions
     /// <param name="propertyName">The property name.</param>
     /// <param name="propertyValue">The property value.</param>
     /// <param name="resultManager">The result manager.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>Returns the resource already exists result.</returns>
-    public static async Task<SondorResult> ResourceAlreadyExists(this ISondorResultManager resultManager,
+    public static SondorResult ResourceAlreadyExists(this ISondorResultManager resultManager,
         string entity,
         string propertyName,
-        string propertyValue,
-        CancellationToken cancellationToken = default)
+        string propertyValue)
     {
         if (entity is null)
         {
@@ -117,36 +114,34 @@ public static class SondorResultManagerExtensions
             throw new ArgumentException($"{nameof(propertyValue)} cannot be empty or whitespace.", nameof(propertyValue));
         }
 
-        var format = await resultManager.GetErrorFormat(SondorErrorCodes.ResourceAlreadyExists, cancellationToken);
-        var description = string.Format(format, entity, propertyName, propertyValue);
-        var error = new SondorError(SondorErrorCodes.ResourceAlreadyExists,
-            SondorErrorTypes.ResourceAlreadyExistsType,
-            description);
+        var errorMessage =
+            resultManager.TranslationManager.ProblemResourceAlreadyExists(entity, propertyName, propertyValue);
 
-        return new SondorResult(error);
+        return new SondorResult(new SondorError(SondorErrorCodes.ResourceAlreadyExists,
+            ProblemResultConstants.FindProblemTypeByErrorCode(SondorErrorCodes.ResourceAlreadyExists),
+            errorMessage,
+            new Dictionary<string, object?>
+            {
+                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
+                { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceAlreadyExists },
+                { ProblemResultConstants.ErrorMessage, errorMessage },
+                { ProblemResultConstants.Resource, entity },
+                { ProblemResultConstants.PropertyName, propertyName },
+                { ProblemResultConstants.PropertyValue, propertyValue }
+            }));
     }
 
-    /// <summary>
-    /// Resource already exists result.
-    /// </summary>
+    /// <inheritdoc cref="ResourceAlreadyExists"/>
     /// <typeparam name="TResult">The result type.</typeparam>
-    /// <param name="entity">The entity name.</param>
-    /// <param name="propertyName">The property name.</param>
-    /// <param name="propertyValue">The property value.</param>
-    /// <param name="resultManager">The result manager.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Returns the resource already exists result.</returns>
-    public static async Task<SondorResult<TResult>> ResourceAlreadyExists<TResult>(this ISondorResultManager resultManager,
+    public static SondorResult<TResult> ResourceAlreadyExists<TResult>(this ISondorResultManager resultManager,
         string entity,
         string propertyName,
-        string propertyValue,
-        CancellationToken cancellationToken = default)
+        string propertyValue)
     {
-        var result = await ResourceAlreadyExists(resultManager,
+        var result = ResourceAlreadyExists(resultManager,
             entity,
             propertyName,
-            propertyValue,
-            cancellationToken);
+            propertyValue);
 
         return new SondorResult<TResult>(result.Error);
     }
@@ -158,12 +153,10 @@ public static class SondorResultManagerExtensions
     /// <param name="resource">The resource.</param>
     /// <param name="resourceName">The resource name.</param>
     /// <param name="resultManager">The result manager.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>Returns the resource create failed result.</returns>
-    public static async Task<SondorResult> ResourceCreateFailed<TResource>(this ISondorResultManager resultManager,
+    public static SondorResult ResourceCreateFailed<TResource>(this ISondorResultManager resultManager,
         string resourceName,
-        TResource resource,
-        CancellationToken cancellationToken = default)
+        TResource resource)
     {
         if (resourceName is null)
         {
@@ -175,36 +168,31 @@ public static class SondorResultManagerExtensions
             throw new ArgumentException($"{nameof(resourceName)} cannot be empty or whitespace.", nameof(resourceName));
         }
 
-        var format = await resultManager.GetErrorFormat(SondorErrorCodes.ResourceCreateFailed, cancellationToken);
-        var description = string.Format(format, resourceName);
-        var error = new SondorError(SondorErrorCodes.ResourceCreateFailed,
-            SondorErrorTypes.ResourceCreateFailedType,
-            description);
+        var errorDescription = resultManager.TranslationManager.ProblemResourceCreateFailed(resourceName);
 
-        error.Context.Add(resourceName, resource);
-
-        return new SondorResult(error);
+        return new SondorResult(new SondorError(SondorErrorCodes.ResourceCreateFailed,
+            ProblemResultConstants.FindProblemTypeByErrorCode(SondorErrorCodes.ResourceCreateFailed),
+            errorDescription,
+            new Dictionary<string, object?>
+            {
+                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext?.TraceIdentifier },
+                { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceCreateFailed },
+                { ProblemResultConstants.ErrorMessage, errorDescription },
+                { ProblemResultConstants.Resource, resource },
+                { ProblemResultConstants.NewResource, JsonSerializer.Serialize(resource) }
+            }));
     }
 
-    /// <summary>
-    /// Resource create failed result.
-    /// </summary>
+    /// <inheritdoc cref="ResourceCreateFailed{TResource}"/>
     /// <typeparam name="TResult">The result type.</typeparam>
     /// <typeparam name="TResource">The resource type.</typeparam>
-    /// <param name="resource">The resource.</param>
-    /// <param name="resourceName">The resource name.</param>
-    /// <param name="resultManager">The result manager.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Returns the resource create failed result.</returns>
-    public static async Task<SondorResult<TResult>> ResourceCreateFailed<TResource, TResult>(this ISondorResultManager resultManager,
+    public static SondorResult<TResult> ResourceCreateFailed<TResource, TResult>(this ISondorResultManager resultManager,
         string resourceName,
-        TResource resource,
-        CancellationToken cancellationToken = default)
+        TResource resource)
     {
-        var result = await ResourceCreateFailed(resultManager,
+        var result = ResourceCreateFailed(resultManager,
             resourceName,
-            resource,
-            cancellationToken);
+            resource);
 
         return new SondorResult<TResult>(result.Error);
     }
@@ -216,12 +204,14 @@ public static class SondorResultManagerExtensions
     /// <param name="resource">The resource.</param>
     /// <param name="resourceName">The resource name.</param>
     /// <param name="resultManager">The result manager.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="reasons">The reasons the update failed.</param>
+    /// <param name="updatedResource">The updated resource.</param>
     /// <returns>Returns the resource update failed result.</returns>
-    public static async Task<SondorResult> ResourceUpdateFailed<TResource>(this ISondorResultManager resultManager,
+    public static SondorResult ResourceUpdateFailed<TResource>(this ISondorResultManager resultManager,
         string resourceName,
-        TResource resource,
-        CancellationToken cancellationToken = default)
+        TResource? updatedResource,
+        TResource? resource = default,
+        string[]? reasons = null)
     {
         if (resourceName is null)
         {
@@ -233,36 +223,37 @@ public static class SondorResultManagerExtensions
             throw new ArgumentException($"{nameof(resourceName)} cannot be empty or whitespace.", nameof(resourceName));
         }
 
-        var format = await resultManager.GetErrorFormat(SondorErrorCodes.ResourceUpdateFailed, cancellationToken);
-        var description = string.Format(format, resourceName);
-        var error = new SondorError(SondorErrorCodes.ResourceUpdateFailed,
-            SondorErrorTypes.ResourceUpdateFailedType,
-            description);
+        reasons ??= [];
+        var errorMessage = resultManager.TranslationManager.ProblemResourceUpdateFailed(resourceName);
 
-        error.Context.Add(resourceName, resource);
-
-        return new SondorResult(error);
+        return new SondorResult(new SondorError(SondorErrorCodes.ResourceUpdateFailed,
+            ProblemResultConstants.FindProblemTypeByErrorCode(SondorErrorCodes.ResourceUpdateFailed),
+            errorMessage,
+            new Dictionary<string, object?>
+            {
+                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
+                { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceUpdateFailed },
+                { ProblemResultConstants.ErrorMessage, errorMessage },
+                { ProblemResultConstants.Reasons, reasons },
+                { ProblemResultConstants.Resource, resource },
+                { ProblemResultConstants.UpdatedResource, updatedResource }
+            }));
     }
 
-    /// <summary>
-    /// Resource update failed result.
-    /// </summary>
-    /// <typeparam name="TResult">The result type.</typeparam>
+    /// <inheritdoc cref="ResourceUpdateFailed{TResource}" />
+    /// <typeparam name="TResult">the result type.</typeparam>
     /// <typeparam name="TResource">The resource type.</typeparam>
-    /// <param name="resource">The resource.</param>
-    /// <param name="resourceName">The resource name.</param>
-    /// <param name="resultManager">The result manager.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Returns the resource update failed result.</returns>
-    public static async Task<SondorResult<TResult>> ResourceUpdateFailed<TResource, TResult>(this ISondorResultManager resultManager,
+    public static SondorResult<TResult> ResourceUpdateFailed<TResource, TResult>(this ISondorResultManager resultManager,
         string resourceName,
-        TResource resource,
-        CancellationToken cancellationToken = default)
+        TResource? updatedResource,
+        TResource? resource = default,
+        string[]? reasons = null)
     {
-        var result = await ResourceUpdateFailed(resultManager,
+        var result = ResourceUpdateFailed(resultManager,
             resourceName,
+            updatedResource,
             resource,
-            cancellationToken);
+            reasons);
 
         return new SondorResult<TResult>(result.Error);
     }
@@ -272,11 +263,11 @@ public static class SondorResultManagerExtensions
     /// </summary>
     /// <param name="resource">The resource name.</param>
     /// <param name="resultManager">The result manager.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="reasons">The reasons the deletion failed.</param>
     /// <returns>Returns the resource delete failed result.</returns>
-    public static async Task<SondorResult> ResourceDeleteFailed(this ISondorResultManager resultManager,
+    public static SondorResult ResourceDeleteFailed(this ISondorResultManager resultManager,
         string resource,
-        CancellationToken cancellationToken = default)
+        string[]? reasons = null)
     {
         if (resource is null)
         {
@@ -288,30 +279,30 @@ public static class SondorResultManagerExtensions
             throw new ArgumentException($"{nameof(resource)} cannot be empty or whitespace.", nameof(resource));
         }
 
-        var format = await resultManager.GetErrorFormat(SondorErrorCodes.ResourceDeleteFailed, cancellationToken);
-        var description = string.Format(format, resource);
-        var error = new SondorError(SondorErrorCodes.ResourceDeleteFailed,
-            SondorErrorTypes.ResourceDeleteFailedType,
-            description);
+        var errorMessage = resultManager.TranslationManager.ProblemResourceDeleteFailed(resource);
 
-        return new SondorResult(error);
+        return new SondorResult(new SondorError(SondorErrorCodes.ResourceDeleteFailed,
+            ProblemResultConstants.FindProblemTypeByErrorCode(SondorErrorCodes.ResourceDeleteFailed),
+            errorMessage,
+            new Dictionary<string, object?>
+            {
+                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
+                { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceDeleteFailed },
+                { ProblemResultConstants.ErrorMessage, errorMessage },
+                { ProblemResultConstants.Reasons, reasons },
+                { ProblemResultConstants.Resource, resource }
+            }));
     }
 
-    /// <summary>
-    /// Resource delete failed result.
-    /// </summary>
+    /// <inheritdoc cref="ResourceDeleteFailed"/>
     /// <typeparam name="TResult">The result type.</typeparam>
-    /// <param name="resource">The resource name.</param>
-    /// <param name="resultManager">The result manager.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Returns the resource delete failed result.</returns>
-    public static async Task<SondorResult<TResult>> ResourceDeleteFailed<TResult>(this ISondorResultManager resultManager,
+    public static SondorResult<TResult> ResourceDeleteFailed<TResult>(this ISondorResultManager resultManager,
         string resource,
-        CancellationToken cancellationToken = default)
+        string[]? reasons = null)
     {
-        var result = await ResourceDeleteFailed(resultManager,
+        var result = ResourceDeleteFailed(resultManager,
             resource,
-            cancellationToken);
+            reasons);
 
         return new SondorResult<TResult>(result.Error);
     }
@@ -323,13 +314,11 @@ public static class SondorResultManagerExtensions
     /// <param name="entity">The entity name.</param>
     /// <param name="propertyName">The property name.</param>
     /// <param name="propertyValue">The property name.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>Returns the resource not found result.</returns>
-    public static async Task<SondorResult> ResourceNotFound(this ISondorResultManager resultManager,
+    public static SondorResult ResourceNotFound(this ISondorResultManager resultManager,
         string entity,
         string propertyName,
-        string propertyValue,
-        CancellationToken cancellationToken = default)
+        string propertyValue)
     {
         if (entity is null)
         {
@@ -361,35 +350,33 @@ public static class SondorResultManagerExtensions
             throw new ArgumentException($"{nameof(propertyValue)} cannot be empty or whitespace.", nameof(propertyValue));
         }
 
-        var errorFormat = await resultManager.GetErrorFormat(SondorErrorCodes.ResourceNotFound, cancellationToken);
-        var description = string.Format(errorFormat, entity, propertyName, propertyValue);
-        var error = new SondorError(SondorErrorCodes.ResourceNotFound,
-            SondorErrorTypes.ResourceNotFoundType,
-            description);
+        var errorMessage = resultManager.TranslationManager.ProblemResourceNotFound(entity, propertyName, propertyValue);
 
-        return new SondorResult(error);
+        return new SondorResult(new SondorError(SondorErrorCodes.ResourceNotFound,
+            ProblemResultConstants.FindProblemTypeByErrorCode(SondorErrorCodes.ResourceNotFound),
+            errorMessage,
+            new Dictionary<string, object?>
+            {
+                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
+                { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceNotFound },
+                { ProblemResultConstants.ErrorMessage, errorMessage },
+                { ProblemResultConstants.Resource, entity },
+                { ProblemResultConstants.PropertyName, propertyName },
+                { ProblemResultConstants.PropertyValue, propertyValue }
+            }));
     }
 
-    /// <summary>
-    /// Resource not found result.
-    /// </summary>
-    /// <param name="resultManager">The result manager.</param>
-    /// <param name="entity">The entity name.</param>
-    /// <param name="propertyName">The property name.</param>
-    /// <param name="propertyValue">The property name.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Returns the resource not found result.</returns>
-    public static async Task<SondorResult<TResult>> ResourceNotFound<TResult>(this ISondorResultManager resultManager,
+    /// <inheritdoc cref="ResourceNotFound"/>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    public static SondorResult<TResult> ResourceNotFound<TResult>(this ISondorResultManager resultManager,
         string entity,
         string propertyName,
-        string propertyValue,
-        CancellationToken cancellationToken = default)
+        string propertyValue)
     {
-        var result = await ResourceNotFound(resultManager,
+        var result = ResourceNotFound(resultManager,
             entity,
             propertyName,
-            propertyValue,
-            cancellationToken);
+            propertyValue);
 
         return new SondorResult<TResult>(result.Error);
     }
@@ -399,11 +386,9 @@ public static class SondorResultManagerExtensions
     /// </summary>
     /// <param name="resultManager">The result manager.</param>
     /// <param name="message">The error message.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>Returns the resource not found result.</returns>
-    public static async Task<SondorResult> UnexpectedError(this ISondorResultManager resultManager,
-        string message,
-        CancellationToken cancellationToken = default)
+    public static SondorResult UnexpectedError(this ISondorResultManager resultManager,
+        string message)
     {
         if (message is null)
         {
@@ -415,27 +400,25 @@ public static class SondorResultManagerExtensions
             throw new ArgumentException($"{nameof(message)} cannot be empty or whitespace.", nameof(message));
         }
 
-        var errorFormat = await resultManager.GetErrorFormat(SondorErrorCodes.UnexpectedError, cancellationToken);
-        var description = string.Format(errorFormat, message);
-        var error = new SondorError(SondorErrorCodes.UnexpectedError,
-            SondorErrorTypes.UnexpectedErrorType,
-            description);
+        var errorMessage = resultManager.TranslationManager.ProblemUnexpectedError();
 
-        return new SondorResult(error);
+        return new SondorResult(new SondorError(SondorErrorCodes.UnexpectedError,
+            SondorErrorTypes.UnexpectedErrorType,
+            errorMessage,
+            new Dictionary<string, object?>
+            {
+                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
+                { ProblemResultConstants.ErrorCode, SondorErrorCodes.UnexpectedError },
+                { ProblemResultConstants.ErrorMessage, errorMessage }
+            }));
     }
 
-    /// <summary>
-    /// Resource not found result.
-    /// </summary>
-    /// <param name="resultManager">The result manager.</param>
-    /// <param name="message">The error message.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Returns the resource not found result.</returns>
-    public static async Task<SondorResult<TResult>> UnexpectedError<TResult>(this ISondorResultManager resultManager,
-        string message,
-        CancellationToken cancellationToken = default)
+    /// <inheritdoc cref="UnexpectedError"/>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    public static SondorResult<TResult> UnexpectedError<TResult>(this ISondorResultManager resultManager,
+        string message)
     {
-        var result = await UnexpectedError(resultManager, message, cancellationToken);
+        var result = UnexpectedError(resultManager, message);
 
         return new SondorResult<TResult>(result.Error);
     }

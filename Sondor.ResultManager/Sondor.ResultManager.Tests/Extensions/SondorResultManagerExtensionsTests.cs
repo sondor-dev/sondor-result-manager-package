@@ -1,18 +1,35 @@
 ﻿using FluentValidation.Results;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Sondor.Errors;
 using Sondor.Errors.Tests;
+using Sondor.ProblemResults.Constants;
+using Sondor.ProblemResults.Extensions;
 using Sondor.ResultManager.Extensions;
 using Sondor.Tests.Args;
+using Sondor.Translations.Args;
+using Sondor.Translations.Extensions;
+using Sondor.Translations.Options;
+using System.Globalization;
 
 namespace Sondor.ResultManager.Tests.Extensions;
 
 /// <summary>
 /// Tests for <see cref="SondorResultManagerExtensions"/>.
 /// </summary>
-[TestFixture]
+[TestFixtureSource(typeof(LanguageArgs))]
 public class SondorResultManagerExtensionsTests
 {
+    /// <summary>
+    /// The language.
+    /// </summary>
+    private readonly string _language;
+
+    /// <summary>
+    /// The trace identifier.
+    /// </summary>
+    private const string _trace_identifier = "trace-id";
+
     /// <summary>
     /// The result manager.
     /// </summary>
@@ -21,20 +38,45 @@ public class SondorResultManagerExtensionsTests
     /// <summary>
     /// Creates a new instance of <see cref="SondorResultManagerExtensionsTests"/>.
     /// </summary>
-    public SondorResultManagerExtensionsTests()
+    public SondorResultManagerExtensionsTests(string language)
     {
-        var services = new ServiceCollection();
-        services.AddSondorResultManager();
+        _language = language;
+        var options = new SondorTranslationOptions
+        {
+            DefaultCulture = "en",
+            SupportedCultures = new LanguageArgs().Cast<string>().ToArray(),
+            UseKeyAsDefaultValue = false
+        };
+        var services = new ServiceCollection()
+            .AddLogging()
+            .AddTestTranslation(options, "Test:Translation")
+            .AddSingleton<IHttpContextAccessor>(_ => new HttpContextAccessor
+            {
+                HttpContext = CreateHttpContext()
+            })
+            .AddSondorResultManager();
 
         var serviceProvider = services.BuildServiceProvider();
         _resultManager = serviceProvider.GetRequiredService<ISondorResultManager>();
     }
 
     /// <summary>
+    /// Test setup.
+    /// </summary>
+    [SetUp]
+    public void Setup()
+    {
+        var culture = new CultureInfo(_language);
+
+        Thread.CurrentThread.CurrentCulture = culture;
+        Thread.CurrentThread.CurrentUICulture = culture;
+    }
+
+    /// <summary>
     /// Ensures that <see cref="SondorResultManagerExtensions.BadRequest"/> works as intended.
     /// </summary>
     [Test]
-    public async Task BadRequest()
+    public void BadRequest()
     {
         // arrange
         var failures = new List<ValidationFailure>
@@ -42,16 +84,10 @@ public class SondorResultManagerExtensionsTests
             new ("Id", "Invalid id", 0)
         };
 
-        var description =
-            string.Format(SondorErrorMessages.BadRequest, failures.Count);
-        var error = new SondorError(SondorErrorCodes.BadRequest,
-            SondorErrorTypes.BadRequestType,
-            description);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.BadRequest, CreateHttpContext());
 
         // act
-        var result = await _resultManager.BadRequest(failures,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.BadRequest(failures);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -61,7 +97,7 @@ public class SondorResultManagerExtensionsTests
     /// Ensures that <see cref="SondorResultManagerExtensions.BadRequest"/> works as intended.
     /// </summary>
     [Test]
-    public async Task BadRequest_typed()
+    public void BadRequest_typed()
     {
         // arrange
         var failures = new List<ValidationFailure>
@@ -69,16 +105,10 @@ public class SondorResultManagerExtensionsTests
             new ("Id", "Invalid id", 0)
         };
 
-        var description =
-            string.Format(SondorErrorMessages.BadRequest, failures.Count);
-        var error = new SondorError(SondorErrorCodes.BadRequest,
-            SondorErrorTypes.BadRequestType,
-            description);
-        var expected = new SondorResult<int>(error);
+        var expected = FromErrorCode<int>(SondorErrorCodes.BadRequest, CreateHttpContext());
 
         // act
-        var result = await _resultManager.BadRequest<int>(failures,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.BadRequest<int>(failures);
 
         //assert
         SondorErrorAssert.AssertResult<int>(result, expected);
@@ -98,19 +128,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (entityName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists(entityName!, propertyName, propertyValue));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists(entityName!, propertyName, propertyValue));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(entityName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
@@ -127,19 +157,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (entityName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists<int>(entityName!, propertyName, propertyValue));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists<int>(entityName!, propertyName, propertyValue));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(entityName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
@@ -156,19 +186,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (propertyName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists(entityName, propertyName!, propertyValue));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists(entityName, propertyName!, propertyValue));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(propertyName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
@@ -185,19 +215,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (propertyName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName!, propertyValue));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName!, propertyValue));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(propertyName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
@@ -214,19 +244,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (propertyValue is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue!));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue!));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(propertyValue))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceAlreadyExists(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
@@ -243,44 +273,36 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (propertyValue is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue!));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue!));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(propertyValue))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceAlreadyExists<int>(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
     /// Ensures that <see cref="SondorResultManagerExtensions.ResourceAlreadyExists"/> works as intended.
     /// </summary>
     [Test]
-    public async Task ResourceAlreadyExists()
+    public void ResourceAlreadyExists()
     {
         // arrange
-        const string entity = "Entity";
-        const string propertyName = "Id";
-        const string propertyValue = "1";
+        const string entity = "test";
+        const string propertyName = "property-name";
+        const string propertyValue = "property-value";
 
-        var description =
-            string.Format(SondorErrorMessages.ResourceAlreadyExists, entity, propertyName, propertyValue);
-        var error = new SondorError(SondorErrorCodes.ResourceAlreadyExists,
-            SondorErrorTypes.ResourceAlreadyExistsType,
-            description);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.ResourceAlreadyExists, CreateHttpContext());
 
         // act
-        var result = await _resultManager.ResourceAlreadyExists(entity,
-            propertyName,
-            propertyValue,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.ResourceAlreadyExists(entity, propertyName, propertyValue);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -290,25 +312,17 @@ public class SondorResultManagerExtensionsTests
     /// Ensures that <see cref="SondorResultManagerExtensions.ResourceAlreadyExists"/> works as intended.
     /// </summary>
     [Test]
-    public async Task ResourceAlreadyExists_typed()
+    public void ResourceAlreadyExists_typed()
     {
         // arrange
-        const string entity = "Entity";
-        const string propertyName = "Id";
-        const string propertyValue = "1";
+        const string entity = "test";
+        const string propertyName = "property-name";
+        const string propertyValue = "property-value";
 
-        var description =
-            string.Format(SondorErrorMessages.ResourceAlreadyExists, entity, propertyName, propertyValue);
-        var error = new SondorError(SondorErrorCodes.ResourceAlreadyExists,
-            SondorErrorTypes.ResourceAlreadyExistsType,
-            description);
-        var expected = new SondorResult<int>(error);
+        var expected = FromErrorCode<int>(SondorErrorCodes.ResourceAlreadyExists, CreateHttpContext());
 
         // act
-        var result = await _resultManager.ResourceAlreadyExists<int>(entity,
-            propertyName,
-            propertyValue,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.ResourceAlreadyExists<int>(entity, propertyName, propertyValue);
 
         //assert
         SondorErrorAssert.AssertResult<int>(result, expected);
@@ -327,42 +341,35 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (resourceName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceCreateFailed(resourceName!, resource));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceCreateFailed(resourceName!, resource));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(resourceName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceCreateFailed(resourceName, resource));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceCreateFailed(resourceName, resource));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceCreateFailed(resourceName, resource));
+        Assert.DoesNotThrow(() => _resultManager.ResourceCreateFailed(resourceName, resource));
     }
 
     /// <summary>
     /// Ensures that <see cref="SondorResultManagerExtensions.ResourceCreateFailed{TResource}"/> works as intended.
     /// </summary>
     [Test]
-    public async Task ResourceCreateFailed()
+    public void ResourceCreateFailed()
     {
         // arrange
         const int resource = 10;
         const string resourceName = "test";
 
-        var description =
-            string.Format(SondorErrorMessages.ResourceCreateFailed, resourceName);
-        var error = new SondorError(SondorErrorCodes.ResourceCreateFailed,
-            SondorErrorTypes.ResourceCreateFailedType,
-            description);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.ResourceCreateFailed, CreateHttpContext());
 
         // act
-        var result = await _resultManager.ResourceCreateFailed(resourceName,
-            resource,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.ResourceCreateFailed(resourceName, resource);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -372,23 +379,16 @@ public class SondorResultManagerExtensionsTests
     /// Ensures that <see cref="SondorResultManagerExtensions.ResourceAlreadyExists"/> works as intended.
     /// </summary>
     [Test]
-    public async Task ResourceCreateFailed_typed()
+    public void ResourceCreateFailed_typed()
     {
         // arrange
         const int resource = 10;
         const string resourceName = "test";
 
-        var description =
-            string.Format(SondorErrorMessages.ResourceCreateFailed, resourceName);
-        var error = new SondorError(SondorErrorCodes.ResourceCreateFailed,
-            SondorErrorTypes.ResourceCreateFailedType,
-            description);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.ResourceCreateFailed, CreateHttpContext());
 
         // act
-        var result = await _resultManager.ResourceCreateFailed<int, int>(resourceName,
-            resource,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.ResourceCreateFailed<int, int>(resourceName, resource);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -407,42 +407,35 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (resourceName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceUpdateFailed(resourceName!, resource));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceUpdateFailed(resourceName!, resource));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(resourceName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceUpdateFailed(resourceName, resource));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceUpdateFailed(resourceName, resource));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceUpdateFailed(resourceName, resource));
+        Assert.DoesNotThrow(() => _resultManager.ResourceUpdateFailed(resourceName, resource));
     }
 
     /// <summary>
     /// Ensures that <see cref="SondorResultManagerExtensions.ResourceUpdateFailed{TResource}"/> works as intended.
     /// </summary>
     [Test]
-    public async Task ResourceUpdateFailed()
+    public void ResourceUpdateFailed()
     {
         // arrange
         const int resource = 10;
         const string resourceName = "test";
 
-        var description =
-            string.Format(SondorErrorMessages.ResourceUpdateFailed, resourceName);
-        var error = new SondorError(SondorErrorCodes.ResourceUpdateFailed,
-            SondorErrorTypes.ResourceUpdateFailedType,
-            description);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.ResourceUpdateFailed, CreateHttpContext());
 
         // act
-        var result = await _resultManager.ResourceUpdateFailed(resourceName,
-            resource,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.ResourceUpdateFailed(resourceName, resource);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -452,23 +445,16 @@ public class SondorResultManagerExtensionsTests
     /// Ensures that <see cref="SondorResultManagerExtensions.ResourceUpdateFailed{TResource}"/> works as intended.
     /// </summary>
     [Test]
-    public async Task ResourceUpdateFailed_typed()
+    public void ResourceUpdateFailed_typed()
     {
         // arrange
         const int resource = 10;
         const string resourceName = "test";
 
-        var description =
-            string.Format(SondorErrorMessages.ResourceUpdateFailed, resourceName);
-        var error = new SondorError(SondorErrorCodes.ResourceUpdateFailed,
-            SondorErrorTypes.ResourceUpdateFailedType,
-            description);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.ResourceUpdateFailed, CreateHttpContext());
 
         // act
-        var result = await _resultManager.ResourceUpdateFailed<int, int>(resourceName,
-            resource,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.ResourceUpdateFailed<int, int>(resourceName, resource);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -486,40 +472,34 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (resourceName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceDeleteFailed(resourceName!));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceDeleteFailed(resourceName!));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(resourceName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceDeleteFailed(resourceName));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceDeleteFailed(resourceName));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceDeleteFailed(resourceName));
+        Assert.DoesNotThrow(() => _resultManager.ResourceDeleteFailed(resourceName));
     }
 
     /// <summary>
     /// Ensures that <see cref="SondorResultManagerExtensions.ResourceDeleteFailed{TResource}"/> works as intended.
     /// </summary>
     [Test]
-    public async Task ResourceDeleteFailed()
+    public void ResourceDeleteFailed()
     {
         // arrange
         const string resourceName = "test";
 
-        var description =
-            string.Format(SondorErrorMessages.ResourceDeleteFailed, resourceName);
-        var error = new SondorError(SondorErrorCodes.ResourceDeleteFailed,
-            SondorErrorTypes.ResourceDeleteFailedType,
-            description);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.ResourceDeleteFailed, CreateHttpContext());
 
         // act
-        var result = await _resultManager.ResourceDeleteFailed(resourceName,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.ResourceDeleteFailed(resourceName);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -529,21 +509,15 @@ public class SondorResultManagerExtensionsTests
     /// Ensures that <see cref="SondorResultManagerExtensions.ResourceDeleteFailed{TResource}"/> works as intended.
     /// </summary>
     [Test]
-    public async Task ResourceDeleteFailed_typed()
+    public void ResourceDeleteFailed_typed()
     {
         // arrange
         const string resourceName = "test";
 
-        var description =
-            string.Format(SondorErrorMessages.ResourceDeleteFailed, resourceName);
-        var error = new SondorError(SondorErrorCodes.ResourceDeleteFailed,
-            SondorErrorTypes.ResourceDeleteFailedType,
-            description);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.ResourceDeleteFailed, CreateHttpContext());
 
         // act
-        var result = await _resultManager.ResourceDeleteFailed<int>(resourceName,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.ResourceDeleteFailed<int>(resourceName);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -592,19 +566,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (message is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.UnexpectedError(message!));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.UnexpectedError(message!));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(message))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.UnexpectedError(message));
+            Assert.Throws<ArgumentException>(() => _resultManager.UnexpectedError(message));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.UnexpectedError(message));
+        Assert.DoesNotThrow(() => _resultManager.UnexpectedError(message));
     }
 
     /// <summary>
@@ -617,19 +591,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (message is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.UnexpectedError<int>(message!));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.UnexpectedError<int>(message!));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(message))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.UnexpectedError<int>(message));
+            Assert.Throws<ArgumentException>(() => _resultManager.UnexpectedError<int>(message));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.UnexpectedError<int>(message));
+        Assert.DoesNotThrow(() => _resultManager.UnexpectedError<int>(message));
     }
 
     /// <summary>
@@ -637,29 +611,28 @@ public class SondorResultManagerExtensionsTests
     /// </summary>
     /// <param name="message">The message.</param>
     [TestCaseSource(typeof(StringArgs))]
-    public async Task UnexpectedError(string? message)
+    public void UnexpectedError(string? message)
     {
         // exceptions
         if (message is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.UnexpectedError(message!));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.UnexpectedError(message!));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(message))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.UnexpectedError(message));
+            Assert.Throws<ArgumentException>(() => _resultManager.UnexpectedError(message));
 
             return;
         }
 
         // arrange
-        var error = new SondorError(SondorErrorCodes.UnexpectedError, SondorErrorTypes.UnexpectedErrorType, message);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.UnexpectedError, CreateHttpContext());
 
         // act
-        var result = await _resultManager.UnexpectedError(message, TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.UnexpectedError(message);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -670,29 +643,28 @@ public class SondorResultManagerExtensionsTests
     /// </summary>
     /// <param name="message">The message.</param>
     [TestCaseSource(typeof(StringArgs))]
-    public async Task UnexpectedError_typed(string? message)
+    public void UnexpectedError_typed(string? message)
     {
         // exceptions
         if (message is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.UnexpectedError<int>(message!));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.UnexpectedError<int>(message!));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(message))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.UnexpectedError<int>(message));
+            Assert.Throws<ArgumentException>(() => _resultManager.UnexpectedError<int>(message));
 
             return;
         }
 
         // arrange
-        var error = new SondorError(SondorErrorCodes.UnexpectedError, SondorErrorTypes.UnexpectedErrorType, message);
-        var expected = new SondorResult<int>(error);
+        var expected = FromErrorCode<int>(SondorErrorCodes.UnexpectedError, CreateHttpContext());
 
         // act
-        var result = await _resultManager.UnexpectedError<int>(message, TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.UnexpectedError<int>(message);
 
         //assert
         SondorErrorAssert.AssertResult<int>(result, expected);
@@ -712,19 +684,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (entityName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceNotFound(entityName!, propertyName, propertyValue));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceNotFound(entityName!, propertyName, propertyValue));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(entityName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
@@ -741,19 +713,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (entityName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceNotFound<int>(entityName!, propertyName, propertyValue));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceNotFound<int>(entityName!, propertyName, propertyValue));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(entityName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
@@ -770,19 +742,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (propertyName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceNotFound(entityName, propertyName!, propertyValue));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceNotFound(entityName, propertyName!, propertyValue));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(propertyName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
@@ -799,19 +771,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (propertyName is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceNotFound<int>(entityName, propertyName!, propertyValue));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceNotFound<int>(entityName, propertyName!, propertyValue));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(propertyName))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
@@ -828,19 +800,19 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (propertyValue is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue!));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue!));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(propertyValue))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceNotFound(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
@@ -857,44 +829,36 @@ public class SondorResultManagerExtensionsTests
         // exceptions
         if (propertyValue is null)
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue!));
+            Assert.Throws<ArgumentNullException>(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue!));
 
             return;
         }
 
         if (string.IsNullOrWhiteSpace(propertyValue))
         {
-            Assert.ThrowsAsync<ArgumentException>(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
+            Assert.Throws<ArgumentException>(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
 
             return;
         }
 
-        Assert.DoesNotThrowAsync(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
+        Assert.DoesNotThrow(() => _resultManager.ResourceNotFound<int>(entityName, propertyName, propertyValue));
     }
 
     /// <summary>
     /// Ensures that <see cref="SondorResultManagerExtensions.ResourceNotFound"/> works as intended.
     /// </summary>
     [Test]
-    public async Task ResourceNotFound()
+    public void ResourceNotFound()
     {
         // arrange
-        const string entity = "Entity";
-        const string propertyName = "Id";
-        const string propertyValue = "1";
+        const string entity = "test";
+        const string propertyName = "property-name";
+        const string propertyValue = "property-value";
 
-        var description =
-            string.Format(SondorErrorMessages.ResourceNotFound, entity, propertyName, propertyValue);
-        var error = new SondorError(SondorErrorCodes.ResourceNotFound,
-            SondorErrorTypes.ResourceNotFoundType,
-            description);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.ResourceNotFound, CreateHttpContext());
 
         // act
-        var result = await _resultManager.ResourceNotFound(entity,
-            propertyName,
-            propertyValue,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.ResourceNotFound(entity, propertyName, propertyValue);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -904,25 +868,17 @@ public class SondorResultManagerExtensionsTests
     /// Ensures that <see cref="SondorResultManagerExtensions.ResourceNotFound"/> works as intended.
     /// </summary>
     [Test]
-    public async Task ResourceNotFound_typed()
+    public void ResourceNotFound_typed()
     {
         // arrange
-        const string entity = "Entity";
-        const string propertyName = "Id";
-        const string propertyValue = "1";
+        const string entity = "test";
+        const string propertyName = "property-name";
+        const string propertyValue = "property-value";
 
-        var description =
-            string.Format(SondorErrorMessages.ResourceNotFound, entity, propertyName, propertyValue);
-        var error = new SondorError(SondorErrorCodes.ResourceNotFound,
-            SondorErrorTypes.ResourceNotFoundType,
-            description);
-        var expected = new SondorResult<int>(error);
+        var expected = FromErrorCode<int>(SondorErrorCodes.ResourceNotFound, CreateHttpContext());
 
         // act
-        var result = await _resultManager.ResourceNotFound<int>(entity,
-            propertyName,
-            propertyValue,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.ResourceNotFound<int>(entity, propertyName, propertyValue);
 
         //assert
         SondorErrorAssert.AssertResult<int>(result, expected);
@@ -932,21 +888,15 @@ public class SondorResultManagerExtensionsTests
     /// Ensures that <see cref="SondorResultManagerExtensions.UnexpectedError"/> works as intended.
     /// </summary>
     [Test]
-    public async Task UnexpectedError()
+    public void UnexpectedError()
     {
         // arrange
         const string message = "test-message";
 
-        var description =
-            string.Format(SondorErrorMessages.UnexpectedError, message);
-        var error = new SondorError(SondorErrorCodes.UnexpectedError,
-            SondorErrorTypes.UnexpectedErrorType,
-            description);
-        var expected = new SondorResult(error);
+        var expected = FromErrorCode(SondorErrorCodes.UnexpectedError, CreateHttpContext());
 
         // act
-        var result = await _resultManager.UnexpectedError(description,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.UnexpectedError(message);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -956,23 +906,198 @@ public class SondorResultManagerExtensionsTests
     /// Ensures that <see cref="SondorResultManagerExtensions.UnexpectedError"/> works as intended.
     /// </summary>
     [Test]
-    public async Task UnexpectedError_typed()
+    public void UnexpectedError_typed()
     {
         // arrange
         const string message = "test-message";
 
-        var description =
-            string.Format(SondorErrorMessages.UnexpectedError, message);
-        var error = new SondorError(SondorErrorCodes.UnexpectedError,
-            SondorErrorTypes.UnexpectedErrorType,
-            description);
-        var expected = new SondorResult<int>(error);
+        var expected = FromErrorCode<int>(SondorErrorCodes.UnexpectedError, CreateHttpContext());
 
         // act
-        var result = await _resultManager.UnexpectedError<int>(description,
-            TestContext.CurrentContext.CancellationToken);
+        var result = _resultManager.UnexpectedError<int>(message);
 
         //assert
         SondorErrorAssert.AssertResult<int>(result, expected);
+    }
+
+    /// <summary>
+    /// Create default HTTP context.
+    /// </summary>
+    /// <returns>Returns the HTTP context.</returns>
+    private static DefaultHttpContext CreateHttpContext()
+    {
+        var context = new DefaultHttpContext
+        {
+            Request =
+            {
+                Method = HttpMethod.Get.Method,
+                Path = "/test",
+                Host = new HostString("localhost"),
+                Protocol = "HTTP/1.1"
+            },
+            TraceIdentifier = _trace_identifier
+        };
+
+        return context;
+    }
+
+    /// <summary>
+    /// Create a <see cref="SondorResult"/> from the provided <paramref name="errorCode"/>.
+    /// </summary>
+    /// <param name="errorCode">The error code.</param>
+    /// <param name="context">The HTTP context.</param>
+    /// <returns>Returns the result.</returns>
+    private SondorResult FromErrorCode(int errorCode,
+        HttpContext context)
+    {
+        const string resource = "test";
+        const string newResource = "new-resource";
+        const string propertyName = "property-name";
+        const string propertyValue = "property-value";
+        const string updatedResource = "updated-resource";
+
+        ValidationFailure[] validationErrors = [new("test", "error")];
+        var patches = new Dictionary<string, string?>([new KeyValuePair<string, string?>("patch-1", "value")]);
+        string[] reasons = ["reason-1"];
+
+        return errorCode switch
+        {
+            SondorErrorCodes.BadRequest => new SondorResult(new SondorError(SondorErrorCodes.BadRequest,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
+                _resultManager.TranslationManager.ProblemBadRequest(context.Request.Method, context.Request.Path),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, context.TraceIdentifier },
+                    { ProblemResultConstants.ErrorCode, errorCode },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemBadRequest(context.Request.Method, context.Request.Path) }
+                })),
+            SondorErrorCodes.Forbidden => new SondorResult(new SondorError(SondorErrorCodes.Forbidden,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
+                _resultManager.TranslationManager.ProblemForbidden(),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, context.TraceIdentifier },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemForbidden() },
+                    { ProblemResultConstants.ErrorCode, SondorErrorCodes.Forbidden },
+                    { ProblemResultConstants.Resource, context.GetInstance() }
+                })),
+            SondorErrorCodes.ResourceAlreadyExists => new SondorResult(new SondorError(SondorErrorCodes.ResourceAlreadyExists,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
+                _resultManager.TranslationManager.ProblemResourceAlreadyExists(resource, propertyName, propertyValue),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, _trace_identifier },
+                    { ProblemResultConstants.ErrorCode, errorCode },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemResourceAlreadyExists(resource, propertyName, propertyValue) },
+                    { ProblemResultConstants.Resource, resource },
+                    { ProblemResultConstants.PropertyName, propertyName },
+                    { ProblemResultConstants.PropertyValue, propertyValue }
+                })),
+            SondorErrorCodes.ResourceCreateFailed => new SondorResult(new SondorError(SondorErrorCodes.ResourceCreateFailed,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
+                _resultManager.TranslationManager.ProblemResourceCreateFailed(resource),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, _trace_identifier },
+                    { ProblemResultConstants.ErrorCode, errorCode },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemResourceCreateFailed(resource) },
+                    { ProblemResultConstants.Resource, resource },
+                    { ProblemResultConstants.NewResource, newResource }
+                })),
+            SondorErrorCodes.ResourceDeleteFailed => new SondorResult(new SondorError(SondorErrorCodes.ResourceDeleteFailed,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
+                _resultManager.TranslationManager.ProblemResourceDeleteFailed(resource),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, context.TraceIdentifier },
+                    { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceDeleteFailed },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemResourceDeleteFailed(resource) },
+                    { ProblemResultConstants.Reasons, reasons },
+                    { ProblemResultConstants.Resource, resource }
+                })),
+            SondorErrorCodes.ResourceNotFound => new SondorResult(new SondorError(SondorErrorCodes.ResourceNotFound,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
+                _resultManager.TranslationManager.ProblemResourceNotFound(resource, propertyName, propertyValue),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, _trace_identifier },
+                    { ProblemResultConstants.ErrorCode, errorCode },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemResourceNotFound(resource, propertyName, propertyValue) },
+                    { ProblemResultConstants.Resource, resource },
+                    { ProblemResultConstants.PropertyName, propertyName },
+                    { ProblemResultConstants.PropertyValue, propertyValue }
+                })),
+            SondorErrorCodes.ResourcePatchFailed => new SondorResult(new SondorError(errorCode,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
+                _resultManager.TranslationManager.ProblemResourcePatchFailed(resource),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, context.TraceIdentifier },
+                    { ProblemResultConstants.Patches, patches },
+                    { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourcePatchFailed },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemResourcePatchFailed(resource) },
+                    { ProblemResultConstants.Resource, resource }
+                })),
+            SondorErrorCodes.ResourceUpdateFailed => new SondorResult(new SondorError(SondorErrorCodes.ResourceUpdateFailed,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
+                _resultManager.TranslationManager.ProblemResourceUpdateFailed(resource),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, context.TraceIdentifier },
+                    { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceUpdateFailed },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemResourceUpdateFailed(resource) },
+                    { ProblemResultConstants.Reasons, reasons },
+                    { ProblemResultConstants.Resource, resource },
+                    { ProblemResultConstants.UpdatedResource, updatedResource }
+                })),
+            SondorErrorCodes.TaskCancelled => new SondorResult(new SondorError(SondorErrorCodes.TaskCancelled,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
+                _resultManager.TranslationManager.ProblemTaskCancelled(resource),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, context.TraceIdentifier },
+                    { ProblemResultConstants.ErrorCode, SondorErrorCodes.TaskCancelled },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemTaskCancelled(resource) }
+                })),
+            SondorErrorCodes.ValidationFailed => new SondorResult(new SondorError(SondorErrorCodes.ValidationFailed,
+                SondorErrorTypes.BadRequestType,
+                _resultManager.TranslationManager.ProblemValidationErrors(1),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, context.TraceIdentifier },
+                    { ProblemResultConstants.ErrorCode, SondorErrorCodes.ValidationFailed },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemValidationErrors(1) },
+                    { ProblemResultConstants.Errors, validationErrors }
+                })),
+            SondorErrorCodes.Unauthorized => new SondorResult(new SondorError(SondorErrorCodes.Unauthorized,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
+                _resultManager.TranslationManager.ProblemUnauthorized(resource),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, context.TraceIdentifier },
+                    { ProblemResultConstants.ErrorCode, errorCode },
+                    { ProblemResultConstants.Resource, resource },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemUnauthorized(resource) }
+                })),
+            _ => new SondorResult(new SondorError(SondorErrorCodes.UnexpectedError,
+                SondorErrorTypes.UnexpectedErrorType,
+                _resultManager.TranslationManager.ProblemUnexpectedError(),
+                new Dictionary<string, object?>
+                {
+                    { ProblemResultConstants.TraceKey, context.TraceIdentifier },
+                    { ProblemResultConstants.ErrorCode, SondorErrorCodes.UnexpectedError },
+                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemUnexpectedError() }
+                })),
+        };
+    }
+
+    /// <inheritdoc cref="FromErrorCode"/>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    private SondorResult<TResult> FromErrorCode<TResult>(int errorCode,
+        HttpContext context)
+    {
+        var result = FromErrorCode(errorCode, context);
+     
+        return new SondorResult<TResult>(result.Error!);
     }
 }
