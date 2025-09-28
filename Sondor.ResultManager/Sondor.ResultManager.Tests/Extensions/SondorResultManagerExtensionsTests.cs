@@ -921,6 +921,74 @@ public class SondorResultManagerExtensionsTests
     }
 
     /// <summary>
+    /// Ensures that <see cref="SondorResultManagerExtensions.Unauthorized"/> works as intended.
+    /// </summary>
+    [Test]
+    public void Unauthorized()
+    {
+        // arrange
+        const string resource = "test";
+
+        var expected = FromErrorCode(SondorErrorCodes.Unauthorized, CreateHttpContext());
+
+        // act
+        var result = _resultManager.Unauthorized(resource);
+
+        //assert
+        SondorErrorAssert.AssertResult(result, expected);
+    }
+
+    /// <summary>
+    /// Ensures that <see cref="SondorResultManagerExtensions.Unauthorized"/> works as intended.
+    /// </summary>
+    [Test]
+    public void Unauthorized_typed()
+    {
+        // arrange
+        const string resource = "test";
+
+        var expected = FromErrorCode<int>(SondorErrorCodes.Unauthorized, CreateHttpContext());
+
+        // act
+        var result = _resultManager.Unauthorized<int>(resource);
+
+        //assert
+        SondorErrorAssert.AssertResult<int>(result, expected);
+    }
+
+    /// <summary>
+    /// Ensures that <see cref="SondorResultManagerExtensions.Forbidden"/> works as intended.
+    /// </summary>
+    [Test]
+    public void Forbidden()
+    {
+        // arrange
+        var expected = FromErrorCode(SondorErrorCodes.Forbidden, CreateHttpContext());
+
+        // act
+        var result = _resultManager.Forbidden();
+
+        //assert
+        SondorErrorAssert.AssertResult(result, expected);
+    }
+
+    /// <summary>
+    /// Ensures that <see cref="SondorResultManagerExtensions.Forbidden"/> works as intended.
+    /// </summary>
+    [Test]
+    public void Forbidden_typed()
+    {
+        // arrange
+        var expected = FromErrorCode<int>(SondorErrorCodes.Forbidden, CreateHttpContext());
+
+        // act
+        var result = _resultManager.Forbidden<int>();
+
+        //assert
+        SondorErrorAssert.AssertResult<int>(result, expected);
+    }
+
+    /// <summary>
     /// Create default HTTP context.
     /// </summary>
     /// <returns>Returns the HTTP context.</returns>

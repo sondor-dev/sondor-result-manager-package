@@ -382,11 +382,11 @@ public static class SondorResultManagerExtensions
     }
 
     /// <summary>
-    /// Resource not found result.
+    /// Unexpected error result.
     /// </summary>
     /// <param name="resultManager">The result manager.</param>
     /// <param name="message">The error message.</param>
-    /// <returns>Returns the resource not found result.</returns>
+    /// <returns>Returns unexpected error result.</returns>
     public static SondorResult UnexpectedError(this ISondorResultManager resultManager,
         string message)
     {
@@ -409,7 +409,7 @@ public static class SondorResultManagerExtensions
             {
                 { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.UnexpectedError },
-                { ProblemResultConstants.ErrorMessage, errorMessage }
+                { ProblemResultConstants.ErrorMessage, message }
             }));
     }
 
@@ -419,6 +419,77 @@ public static class SondorResultManagerExtensions
         string message)
     {
         var result = UnexpectedError(resultManager, message);
+
+        return new SondorResult<TResult>(result.Error);
+    }
+
+    /// <summary>
+    /// Unauthorized result.
+    /// </summary>
+    /// <param name="resultManager">The result manager.</param>
+    /// <param name="resource">The resource.</param>
+    /// <returns>Returns the unauthorized result.</returns>
+    public static SondorResult Unauthorized(this ISondorResultManager resultManager,
+        string resource)
+    {
+        if (resource is null)
+        {
+            throw new ArgumentNullException($"{nameof(resource)} cannot be null.", nameof(resource));
+        }
+
+        if (string.IsNullOrWhiteSpace(resource))
+        {
+            throw new ArgumentException($"{nameof(resource)} cannot be empty or whitespace.", nameof(resource));
+        }
+
+        var errorMessage = resultManager.TranslationManager.ProblemUnauthorized(resource);
+
+        return new SondorResult(new SondorError(SondorErrorCodes.Unauthorized,
+            ProblemResultConstants.UnauthorizedType,
+            errorMessage,
+            new Dictionary<string, object?>
+            {
+                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
+                { ProblemResultConstants.ErrorCode, SondorErrorCodes.Unauthorized },
+                { ProblemResultConstants.ErrorMessage, errorMessage }
+            }));
+    }
+
+    /// <inheritdoc cref="Unauthorized"/>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    public static SondorResult<TResult> Unauthorized<TResult>(this ISondorResultManager resultManager,
+        string resource)
+    {
+        var result = Unauthorized(resultManager, resource);
+
+        return new SondorResult<TResult>(result.Error);
+    }
+
+    /// <summary>
+    /// Forbidden result.
+    /// </summary>
+    /// <param name="resultManager">The result manager.</param>
+    /// <returns>Returns the forbidden result.</returns>
+    public static SondorResult Forbidden(this ISondorResultManager resultManager)
+    {
+        var errorMessage = resultManager.TranslationManager.ProblemForbidden();
+
+        return new SondorResult(new SondorError(SondorErrorCodes.Forbidden,
+            ProblemResultConstants.ForbiddenType,
+            errorMessage,
+            new Dictionary<string, object?>
+            {
+                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
+                { ProblemResultConstants.ErrorCode, SondorErrorCodes.Forbidden },
+                { ProblemResultConstants.ErrorMessage, errorMessage }
+            }));
+    }
+
+    /// <inheritdoc cref="Forbidden"/>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    public static SondorResult<TResult> Forbidden<TResult>(this ISondorResultManager resultManager)
+    {
+        var result = Forbidden(resultManager);
 
         return new SondorResult<TResult>(result.Error);
     }
