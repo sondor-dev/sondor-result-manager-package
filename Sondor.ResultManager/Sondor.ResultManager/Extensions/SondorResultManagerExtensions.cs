@@ -451,7 +451,8 @@ public static class SondorResultManagerExtensions
             {
                 { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.Unauthorized },
-                { ProblemResultConstants.ErrorMessage, errorMessage }
+                { ProblemResultConstants.ErrorMessage, errorMessage },
+                { ProblemResultConstants.Resource, resource }
             }));
     }
 
