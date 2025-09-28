@@ -921,6 +921,56 @@ public class SondorResultManagerExtensionsTests
     }
 
     /// <summary>
+    /// Ensures that <see cref="SondorResultManagerExtensions.Unauthorized"/> throws exceptions as expected.
+    /// </summary>
+    /// <param name="resource">The resource.</param>
+    [TestCaseSource(typeof(StringArgs))]
+    public void Unauthorized_property_value_exception(string? resource)
+    {
+        // exceptions
+        if (resource is null)
+        {
+            Assert.Throws<ArgumentNullException>(() => _resultManager.Unauthorized(resource!));
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(resource))
+        {
+            Assert.Throws<ArgumentException>(() => _resultManager.Unauthorized(resource));
+
+            return;
+        }
+
+        Assert.DoesNotThrow(() => _resultManager.Unauthorized(resource));
+    }
+
+    /// <summary>
+    /// Ensures that <see cref="SondorResultManagerExtensions.Unauthorized"/> throws exceptions as expected.
+    /// </summary>
+    /// <param name="resource">The resource.</param>
+    [TestCaseSource(typeof(StringArgs))]
+    public void Unauthorized_typed_property_value_exception(string? resource)
+    {
+        // exceptions
+        if (resource is null)
+        {
+            Assert.Throws<ArgumentNullException>(() => _resultManager.Unauthorized<int>(resource!));
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(resource))
+        {
+            Assert.Throws<ArgumentException>(() => _resultManager.Unauthorized<int>(resource));
+
+            return;
+        }
+
+        Assert.DoesNotThrow(() => _resultManager.Unauthorized<int>(resource));
+    }
+
+    /// <summary>
     /// Ensures that <see cref="SondorResultManagerExtensions.Unauthorized"/> works as intended.
     /// </summary>
     [Test]
