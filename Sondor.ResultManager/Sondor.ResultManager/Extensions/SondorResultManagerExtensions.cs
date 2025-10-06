@@ -38,17 +38,11 @@ public static class SondorResultManagerExtensions
     /// Bad request result.
     /// </summary>
     /// <param name="resultManager">The result manager.</param>
-    /// <param name="failures">The validation failures.</param>
+    /// <param name="errorMessage">The error message.</param>
     /// <returns>Returns the bad request result.</returns>
     public static SondorResult BadRequest(this ISondorResultManager resultManager,
-        IEnumerable<ValidationFailure> failures)
+        string errorMessage)
     {
-        var failuresList = failures.ToList();
-        var errorMessage =
-            resultManager.TranslationManager.ProblemBadRequest(
-                resultManager.HttpContextAccessor.HttpContext.Request.Method,
-                resultManager.HttpContextAccessor.HttpContext.Request.Path);
-
         return new SondorResult(new SondorError(SondorErrorCodes.BadRequest,
             ProblemResultConstants.FindProblemTypeByErrorCode(SondorErrorCodes.BadRequest),
             errorMessage,
@@ -56,17 +50,51 @@ public static class SondorResultManagerExtensions
             {
                 { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.BadRequest },
-                { ProblemResultConstants.ErrorMessage, errorMessage },
-                { ProblemResultConstants.Errors, failuresList}
+                { ProblemResultConstants.ErrorMessage, errorMessage }
             }));
     }
 
     /// <inheritdoc cref="BadRequest"/>
     /// <typeparam name="TResult">The result type.</typeparam>
     public static SondorResult<TResult> BadRequest<TResult>(this ISondorResultManager resultManager,
+        string errorMessage)
+    {
+        var result = BadRequest(resultManager, errorMessage);
+
+        return new SondorResult<TResult>(result.Error);
+    }
+
+    /// <summary>
+    /// Validation result.
+    /// </summary>
+    /// <param name="resultManager">The result manager.</param>
+    /// <param name="failures">The validation failures.</param>
+    /// <returns>Returns the validation result.</returns>
+    public static SondorResult Validation(this ISondorResultManager resultManager,
         IEnumerable<ValidationFailure> failures)
     {
-        var result = BadRequest(resultManager, failures);
+        var failuresList = failures.ToList();
+        var errorMessage =
+            resultManager.TranslationManager.ProblemValidationErrors(failuresList.Count);
+
+        return new SondorResult(new SondorError(SondorErrorCodes.ValidationFailed,
+            ProblemResultConstants.FindProblemTypeByErrorCode(SondorErrorCodes.ValidationFailed),
+            errorMessage,
+            new Dictionary<string, object?>
+            {
+                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
+                { ProblemResultConstants.ErrorCode, SondorErrorCodes.ValidationFailed },
+                { ProblemResultConstants.ErrorMessage, errorMessage },
+                { ProblemResultConstants.Errors, failuresList }
+            }));
+    }
+
+    /// <inheritdoc cref="Validation"/>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    public static SondorResult<TResult> Validation<TResult>(this ISondorResultManager resultManager,
+        IEnumerable<ValidationFailure> failures)
+    {
+        var result = Validation(resultManager, failures);
 
         return new SondorResult<TResult>(result.Error);
     }

@@ -28,7 +28,7 @@ public class SondorResultManagerExtensionsTests
     /// <summary>
     /// The trace identifier.
     /// </summary>
-    private const string _trace_identifier = "trace-id";
+    private const string TraceIdentifier = "trace-id";
 
     /// <summary>
     /// The result manager.
@@ -79,15 +79,12 @@ public class SondorResultManagerExtensionsTests
     public void BadRequest()
     {
         // arrange
-        var failures = new List<ValidationFailure>
-        {
-            new ("Id", "Invalid id", 0)
-        };
+        const string error = "test";
 
         var expected = FromErrorCode(SondorErrorCodes.BadRequest, CreateHttpContext());
 
         // act
-        var result = _resultManager.BadRequest(failures);
+        var result = _resultManager.BadRequest(error);
 
         //assert
         SondorErrorAssert.AssertResult(result, expected);
@@ -100,15 +97,54 @@ public class SondorResultManagerExtensionsTests
     public void BadRequest_typed()
     {
         // arrange
+        const string error = "test";
+
+        var expected = FromErrorCode<int>(SondorErrorCodes.BadRequest, CreateHttpContext());
+
+        // act
+        var result = _resultManager.BadRequest<int>(error);
+
+        //assert
+        SondorErrorAssert.AssertResult<int>(result, expected);
+    }
+
+    /// <summary>
+    /// Ensures that <see cref="SondorResultManagerExtensions.Validation"/> works as intended.
+    /// </summary>
+    [Test]
+    public void Validation()
+    {
+        // arrange
         var failures = new List<ValidationFailure>
         {
             new ("Id", "Invalid id", 0)
         };
 
-        var expected = FromErrorCode<int>(SondorErrorCodes.BadRequest, CreateHttpContext());
+        var expected = FromErrorCode(SondorErrorCodes.ValidationFailed, CreateHttpContext());
 
         // act
-        var result = _resultManager.BadRequest<int>(failures);
+        var result = _resultManager.Validation(failures);
+
+        //assert
+        SondorErrorAssert.AssertResult(result, expected);
+    }
+
+    /// <summary>
+    /// Ensures that <see cref="SondorResultManagerExtensions.Validation"/> works as intended.
+    /// </summary>
+    [Test]
+    public void Validation_typed()
+    {
+        // arrange
+        var failures = new List<ValidationFailure>
+        {
+            new ("Id", "Invalid id", 0)
+        };
+
+        var expected = FromErrorCode<int>(SondorErrorCodes.ValidationFailed, CreateHttpContext());
+
+        // act
+        var result = _resultManager.Validation<int>(failures);
 
         //assert
         SondorErrorAssert.AssertResult<int>(result, expected);
@@ -1053,7 +1089,7 @@ public class SondorResultManagerExtensionsTests
                 Host = new HostString("localhost"),
                 Protocol = "HTTP/1.1"
             },
-            TraceIdentifier = _trace_identifier
+            TraceIdentifier = TraceIdentifier
         };
 
         return context;
@@ -1082,12 +1118,12 @@ public class SondorResultManagerExtensionsTests
         {
             SondorErrorCodes.BadRequest => new SondorResult(new SondorError(SondorErrorCodes.BadRequest,
                 ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
-                _resultManager.TranslationManager.ProblemBadRequest(context.Request.Method, context.Request.Path),
+                resource,
                 new Dictionary<string, object?>
                 {
                     { ProblemResultConstants.TraceKey, context.TraceIdentifier },
                     { ProblemResultConstants.ErrorCode, errorCode },
-                    { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemBadRequest(context.Request.Method, context.Request.Path) }
+                    { ProblemResultConstants.ErrorMessage, resource }
                 })),
             SondorErrorCodes.Forbidden => new SondorResult(new SondorError(SondorErrorCodes.Forbidden,
                 ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
@@ -1104,7 +1140,7 @@ public class SondorResultManagerExtensionsTests
                 _resultManager.TranslationManager.ProblemResourceAlreadyExists(resource, propertyName, propertyValue),
                 new Dictionary<string, object?>
                 {
-                    { ProblemResultConstants.TraceKey, _trace_identifier },
+                    { ProblemResultConstants.TraceKey, TraceIdentifier },
                     { ProblemResultConstants.ErrorCode, errorCode },
                     { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemResourceAlreadyExists(resource, propertyName, propertyValue) },
                     { ProblemResultConstants.Resource, resource },
@@ -1116,7 +1152,7 @@ public class SondorResultManagerExtensionsTests
                 _resultManager.TranslationManager.ProblemResourceCreateFailed(resource),
                 new Dictionary<string, object?>
                 {
-                    { ProblemResultConstants.TraceKey, _trace_identifier },
+                    { ProblemResultConstants.TraceKey, TraceIdentifier },
                     { ProblemResultConstants.ErrorCode, errorCode },
                     { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemResourceCreateFailed(resource) },
                     { ProblemResultConstants.Resource, resource },
@@ -1138,7 +1174,7 @@ public class SondorResultManagerExtensionsTests
                 _resultManager.TranslationManager.ProblemResourceNotFound(resource, propertyName, propertyValue),
                 new Dictionary<string, object?>
                 {
-                    { ProblemResultConstants.TraceKey, _trace_identifier },
+                    { ProblemResultConstants.TraceKey, TraceIdentifier },
                     { ProblemResultConstants.ErrorCode, errorCode },
                     { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemResourceNotFound(resource, propertyName, propertyValue) },
                     { ProblemResultConstants.Resource, resource },
@@ -1178,7 +1214,7 @@ public class SondorResultManagerExtensionsTests
                     { ProblemResultConstants.ErrorMessage, _resultManager.TranslationManager.ProblemTaskCancelled(resource) }
                 })),
             SondorErrorCodes.ValidationFailed => new SondorResult(new SondorError(SondorErrorCodes.ValidationFailed,
-                SondorErrorTypes.BadRequestType,
+                ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
                 _resultManager.TranslationManager.ProblemValidationErrors(1),
                 new Dictionary<string, object?>
                 {
