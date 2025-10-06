@@ -85,7 +85,7 @@ public static class SondorResultManagerExtensions
                 { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.ValidationFailed },
                 { ProblemResultConstants.ErrorMessage, errorMessage },
-                { ProblemResultConstants.Errors, failuresList }
+                { ProblemResultConstants.Errors, failuresList.ToArray() }
             }));
     }
 
