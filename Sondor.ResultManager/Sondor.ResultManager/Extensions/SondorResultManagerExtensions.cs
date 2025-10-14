@@ -1,8 +1,8 @@
-﻿using System.Text.Json;
-using FluentValidation.Results;
+﻿using FluentValidation.Results;
 using Sondor.Errors;
 using Sondor.ProblemResults.Constants;
 using Sondor.ProblemResults.Extensions;
+using System.Text.Json;
 
 namespace Sondor.ResultManager.Extensions;
 
@@ -45,7 +45,9 @@ public static class SondorResultManagerExtensions
     {
         return new SondorResult(new SondorError(SondorErrorCodes.BadRequest,
             ProblemResultConstants.FindProblemTypeByErrorCode(SondorErrorCodes.BadRequest),
-            errorMessage,
+            resultManager.TranslationManager.ProblemBadRequest(
+                resultManager.HttpContextAccessor.HttpContext!.Request.Method,
+                resultManager.HttpContextAccessor.HttpContext.Request.Path),
             new Dictionary<string, object?>
             {
                 { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },

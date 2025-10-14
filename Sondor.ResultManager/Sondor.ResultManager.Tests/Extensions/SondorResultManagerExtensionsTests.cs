@@ -1118,7 +1118,9 @@ public class SondorResultManagerExtensionsTests
         {
             SondorErrorCodes.BadRequest => new SondorResult(new SondorError(SondorErrorCodes.BadRequest,
                 ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
-                resource,
+                _resultManager.TranslationManager.ProblemBadRequest(
+                    _resultManager.HttpContextAccessor.HttpContext!.Request.Method,
+                    _resultManager.HttpContextAccessor.HttpContext.Request.Path),
                 new Dictionary<string, object?>
                 {
                     { ProblemResultConstants.TraceKey, context.TraceIdentifier },
