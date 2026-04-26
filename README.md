@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/github/license/sondor-dev/sondor-result-manager-package)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/Sondor.resultManager)
 
-The Sondor Result manager package, provides an extendible manager to extend and customize the result pattern.
+The Sondor Result manager package, provides an extendible manager to extend and customize the result pattern. Minimising the need to throw exceptions, and providing a more functional approach to handling results.
 
 ## Install Sondor Result Manager
 Install via NuGet
