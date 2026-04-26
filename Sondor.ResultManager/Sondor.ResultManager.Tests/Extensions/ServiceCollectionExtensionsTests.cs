@@ -21,7 +21,6 @@ public class ServiceCollectionExtensionsTests
         // arrange
         var services = new ServiceCollection()
             .AddLogging()
-            .AddHttpContextAccessor()
             .AddTestTranslation(new SondorTranslationOptions
             {
                 DefaultCulture = "en",
@@ -46,7 +45,6 @@ public class ServiceCollectionExtensionsTests
         // arrange
         var services = new ServiceCollection()
             .AddLogging()
-            .AddHttpContextAccessor()
             .AddTestTranslation(new SondorTranslationOptions
             {
                 DefaultCulture = "en",

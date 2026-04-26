@@ -45,12 +45,9 @@ public static class SondorResultManagerExtensions
     {
         return new SondorResult(new SondorError(SondorErrorCodes.BadRequest,
             ProblemResultConstants.FindProblemTypeByErrorCode(SondorErrorCodes.BadRequest),
-            resultManager.TranslationManager.ProblemBadRequest(
-                resultManager.HttpContextAccessor.HttpContext!.Request.Method,
-                resultManager.HttpContextAccessor.HttpContext.Request.Path),
+            errorMessage,
             new Dictionary<string, object?>
             {
-                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.BadRequest },
                 { ProblemResultConstants.ErrorMessage, errorMessage }
             }));
@@ -84,7 +81,6 @@ public static class SondorResultManagerExtensions
             errorMessage,
             new Dictionary<string, object?>
             {
-                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.ValidationFailed },
                 { ProblemResultConstants.ErrorMessage, errorMessage },
                 { ProblemResultConstants.Errors, failuresList.ToArray() }
@@ -152,7 +148,6 @@ public static class SondorResultManagerExtensions
             errorMessage,
             new Dictionary<string, object?>
             {
-                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceAlreadyExists },
                 { ProblemResultConstants.ErrorMessage, errorMessage },
                 { ProblemResultConstants.Resource, entity },
@@ -205,7 +200,6 @@ public static class SondorResultManagerExtensions
             errorDescription,
             new Dictionary<string, object?>
             {
-                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext?.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceCreateFailed },
                 { ProblemResultConstants.ErrorMessage, errorDescription },
                 { ProblemResultConstants.Resource, resource },
@@ -261,7 +255,6 @@ public static class SondorResultManagerExtensions
             errorMessage,
             new Dictionary<string, object?>
             {
-                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceUpdateFailed },
                 { ProblemResultConstants.ErrorMessage, errorMessage },
                 { ProblemResultConstants.Reasons, reasons },
@@ -316,7 +309,6 @@ public static class SondorResultManagerExtensions
             errorMessage,
             new Dictionary<string, object?>
             {
-                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceDeleteFailed },
                 { ProblemResultConstants.ErrorMessage, errorMessage },
                 { ProblemResultConstants.Reasons, reasons },
@@ -387,7 +379,6 @@ public static class SondorResultManagerExtensions
             errorMessage,
             new Dictionary<string, object?>
             {
-                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.ResourceNotFound },
                 { ProblemResultConstants.ErrorMessage, errorMessage },
                 { ProblemResultConstants.Resource, entity },
@@ -437,7 +428,6 @@ public static class SondorResultManagerExtensions
             errorMessage,
             new Dictionary<string, object?>
             {
-                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.UnexpectedError },
                 { ProblemResultConstants.ErrorMessage, message }
             }));
@@ -479,7 +469,6 @@ public static class SondorResultManagerExtensions
             errorMessage,
             new Dictionary<string, object?>
             {
-                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.Unauthorized },
                 { ProblemResultConstants.ErrorMessage, errorMessage },
                 { ProblemResultConstants.Resource, resource }
@@ -510,7 +499,6 @@ public static class SondorResultManagerExtensions
             errorMessage,
             new Dictionary<string, object?>
             {
-                { ProblemResultConstants.TraceKey, resultManager.HttpContextAccessor.HttpContext.TraceIdentifier },
                 { ProblemResultConstants.ErrorCode, SondorErrorCodes.Forbidden },
                 { ProblemResultConstants.ErrorMessage, errorMessage }
             }));

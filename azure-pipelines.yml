@@ -26,7 +26,7 @@ resources:
       name: sondor-pipeline-templates
       ref: master
 
-steps:
+jobs:
 - template: package-publish.yml@templates
   parameters:
     nuGetFeedType: 'external'

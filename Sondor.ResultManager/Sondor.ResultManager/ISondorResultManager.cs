@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Sondor.Errors;
+﻿using Sondor.Errors;
 using Sondor.Translations;
 
 namespace Sondor.ResultManager;
@@ -9,11 +8,6 @@ namespace Sondor.ResultManager;
 /// </summary>
 public interface ISondorResultManager
 {
-    /// <summary>
-    /// The HTTP context accessor.
-    /// </summary>
-    IHttpContextAccessor HttpContextAccessor { get; }
-
     /// <summary>
     /// The translation manager.
     /// </summary>

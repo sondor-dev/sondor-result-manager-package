@@ -50,10 +50,6 @@ public class SondorResultManagerExtensionsTests
         var services = new ServiceCollection()
             .AddLogging()
             .AddTestTranslation(options, "Test:Translation")
-            .AddSingleton<IHttpContextAccessor>(_ => new HttpContextAccessor
-            {
-                HttpContext = CreateHttpContext()
-            })
             .AddSondorResultManager();
 
         var serviceProvider = services.BuildServiceProvider();
@@ -1118,9 +1114,7 @@ public class SondorResultManagerExtensionsTests
         {
             SondorErrorCodes.BadRequest => new SondorResult(new SondorError(SondorErrorCodes.BadRequest,
                 ProblemResultConstants.FindProblemTypeByErrorCode(errorCode),
-                _resultManager.TranslationManager.ProblemBadRequest(
-                    _resultManager.HttpContextAccessor.HttpContext!.Request.Method,
-                    _resultManager.HttpContextAccessor.HttpContext.Request.Path),
+                resource,
                 new Dictionary<string, object?>
                 {
                     { ProblemResultConstants.TraceKey, context.TraceIdentifier },
